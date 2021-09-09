@@ -1,0 +1,9 @@
+# IntelliJ project files
+.idea
+*.iml
+out
+gen
+
+/vendor/
+.env
+docker-compose.override.yml
