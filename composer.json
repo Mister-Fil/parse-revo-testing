@@ -5,7 +5,9 @@
   "license": "MIT",
   "require-dev": {
     "php": ">=8.0",
-    "ext-swoole": "4.7.*"
+    "ext-swoole": "4.7.*",
+    "swoole/ide-helper": "4.7.*",
+    "symfony/var-dumper": "^5.3"
   },
   "config": {
     "optimize-autoloader": true,
@@ -14,5 +16,18 @@
     "platform": {
       "ext-swoole": "4.7.1"
     }
+  },
+  "autoload": {
+    "psr-4": {
+      "Parser\\": "rootfilesystem/var/www/lib/Parser/"
+    }
+  },
+  "require": {
+    "ext-curl": "*",
+    "ext-dom": "*",
+    "ext-libxml": "*",
+    "ext-simplexml": "*",
+    "symfony/css-selector": "^5.3",
+    "symfony/dom-crawler": "^5.3"
   }
 }

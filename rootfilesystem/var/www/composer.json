@@ -1,0 +1,31 @@
+{
+  "name": "mister-fil/parse-revo-testing",
+  "description": "parse revo testing",
+  "homepage": "https://github.com/Mister-Fil/parse-revo-testing",
+  "license": "MIT",
+  "require-dev": {
+    "php": ">=8.0",
+    "ext-swoole": "4.7.*",
+    "symfony/var-dumper": "^5.3"
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "preferred-install": "dist",
+    "sort-packages": true,
+    "platform": {
+      "ext-swoole": "4.7.1"
+    }
+  },
+  "autoload": {
+    "psr-4": {
+      "Parser\\": "lib/Parser/",
+      "Benchmark\\": "lib/Benchmark/"
+    }
+  },
+  "require": {
+    "ext-curl": "*",
+    "ext-dom": "*",
+    "symfony/css-selector": "^5.3",
+    "symfony/dom-crawler": "^5.3"
+  }
+}

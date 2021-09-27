@@ -1,6 +1,7 @@
-#Hello
+# Hello
 
-###Install Docker and start APP
+### Install Docker and start APP
+
 ```shell
 apt update
 apt install -y apt-transport-https ca-certificates curl gnupg-agent software-properties-common zip unzip
@@ -20,4 +21,8 @@ chmod +x /usr/local/bin/docker-compose
 ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
 
 docker-compose up --build --force-recreate
+```
+
+```shell
+docker-compose exec revo-parser bash
 ```
