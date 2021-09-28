@@ -4,10 +4,10 @@ services:
   app:
     build: .
     environment:
-      AUTORELOAD_PROGRAMS: "swoole swoole2"
+      AUTORELOAD_PROGRAMS: "swoole checker"
       AUTORELOAD_ANY_FILES: 1
     ports:
-      - "0.0.0.0:9501:9501"
+      - "0.0.0.0:9555:9555"
     #    tty: true
     #    stdin_open: true
     volumes:

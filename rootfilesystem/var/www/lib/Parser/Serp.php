@@ -744,29 +744,22 @@ class Serp
 
     /**
      * @param Request $request
-     * @param Response $response
      * @param Table $table
      * @return array|bool
      * @throws Exception
      */
-    public function parseYandex(Request $request, Response $response, Table $table): array|bool
+    public function parseYandex(Request $request, Table $table): array|bool
     {
-//        $response->write('parseYandexResponse: ' . $request->get['search']);
-
         $keySearchMd5 = md5($request->get['search']);
         if ($table->exists($keySearchMd5)) {
-//            $response->write('YES CACHE');
             $body = $table->get($keySearchMd5, 'body');
         } else {
-//            $response->write('NO CACHE');
             $body = (string)$this->fetchYandexResponse($request->get['search']);
             $table->set($keySearchMd5, [
                 'search' => $request->get['search'],
                 'body' => $body,
             ]);
         }
-//        file_put_contents('temp/temp.html', $body);
-//        $body = file_get_contents('temp/temp.html');
         if ($this->parseYandexResponse($body) > 0) {
             return $this->items;
         } else {

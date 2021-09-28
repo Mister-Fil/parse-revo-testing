@@ -24,10 +24,10 @@ $table->column('body', Swoole\Table::TYPE_STRING, 1000000);
 $table->create();
 //$table->destroy();
 
-$server = new Server("0.0.0.0", 9501);
+$server = new Server("0.0.0.0", 9555);
 $server->set(array(
-    'worker_num' => 16,
-    'task_worker_num' => 64,
+    'worker_num' => 64,
+    'task_worker_num' => 128,
 //    'enable_coroutine' => true,
     'task_enable_coroutine' => true,
 ));
@@ -54,19 +54,14 @@ $server->on(
                         'User-Agent: Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4467.0 Mobile Safari/537.36',
                         'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
                     ];
-                    $eta = (int)round((hrtime(true) - $start) / 1e+3); // Микросекунда 1 / 1 000 000 | Curl
-                    $response->write('Время parseYandex IN: ' . $eta . ' микр.сек.' . PHP_EOL);
-                    $Hosts = (new Parser\Serp)->parseYandex($request, $response, $table);
-                    $eta = (int)round((hrtime(true) - $start) / 1e+3); // Микросекунда 1 / 1 000 000 | Curl
-                    $response->write('Время parseYandex OUT: ' . $eta . ' микр.сек.' . PHP_EOL);
+                    $response->write('Время parseYandex IN: ' . round((hrtime(true) - $start) / 1e+3) . ' микр.сек.' . PHP_EOL);
+                    $Hosts = (new Parser\Serp)->parseYandex($request, $table);
+                    $response->write('Время parseYandex OUT: ' . round((hrtime(true) - $start) / 1e+3) . ' микр.сек.' . PHP_EOL);
 //                    $response->write(var_export($Hosts, true));
 
-
-                    $eta = (int)round((hrtime(true) - $start) / 1e+3); // Микросекунда 1 / 1 000 000 | Curl
-                    $response->write('Время checkDomainMultiple IN: ' . $eta . ' микр.сек.' . PHP_EOL);
+                    $response->write('Время checkDomainMultiple IN: ' . round((hrtime(true) - $start) / 1e+3) . ' микр.сек.' . PHP_EOL);
                     $checkListDomain = (new Benchmark\Growth)->checkDomainMultiple($server, $Hosts, $headers);
-                    $eta = (int)round((hrtime(true) - $start) / 1e+3); // Микросекунда 1 / 1 000 000 | Curl
-                    $response->write('Время checkDomainMultiple OUT: ' . $eta . ' микр.сек.' . PHP_EOL);
+                    $response->write('Время checkDomainMultiple OUT: ' . round((hrtime(true) - $start) / 1e+3) . ' микр.сек.' . PHP_EOL);
 
                     $response->write(var_export($checkListDomain, true) . PHP_EOL);
 
@@ -76,8 +71,7 @@ $server->on(
                 $response->status(404);
                 break;
         }
-        $eta = (int)round((hrtime(true) - $start) / 1e+3); // Микросекунда 1 / 1 000 000 | Curl
-        $response->write('Время END: ' . $eta . ' микр.сек.' . PHP_EOL);
+        $response->write('Время END: ' . round((hrtime(true) - $start) / 1e+3) . ' микр.сек.' . PHP_EOL);
         $response->end('No Data');
     }
 );
@@ -95,7 +89,7 @@ $server->on('Task', function (Swoole\Server $server, $task) {
     switch ($json_rpc['method']) {
         case 'checkDomain':
             $client = new Client(SWOOLE_SOCK_TCP);
-            if (!$client->connect('127.0.0.1', 9502, 0.5)) {
+            if (!$client->connect('127.0.0.1', 9560, 0.5)) {
                 echo "connect failed. Error: {$client->errCode}\n";
             }
             $client->send(json_encode($json_rpc));

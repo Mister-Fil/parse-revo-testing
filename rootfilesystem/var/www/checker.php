@@ -3,10 +3,9 @@
 
 declare(strict_types=1);
 
-
 require __DIR__ . '/vendor/autoload.php';
 
-$server = new Swoole\Server('127.0.0.1', 9502);
+$server = new Swoole\Server('127.0.0.1', 9560);
 $server->set(array(
     'worker_num' => 64,
     'task_worker_num' => 512,
