@@ -733,27 +733,19 @@ class Serp
     private array $items = [];
 
     /**
-     * @var array|string[]
-     */
-    private array $headers = [
-        'User-Agent: Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4467.0 Mobile Safari/537.36',
-        'Origin: https://yandex.ru/',
-        'Accept: */*',
-    ];
-
-    /**
      * @param Request $request
      * @param Table $table
+     * @param array $headers
      * @return array|bool
      * @throws Exception
      */
-    public function parseYandex(Request $request, Table $table): array|bool
+    public function parseYandex(Request $request, Table $table, array $headers): array|bool
     {
         $keySearchMd5 = md5($request->get['search']);
         if ($table->exists($keySearchMd5)) {
             $body = $table->get($keySearchMd5, 'body');
         } else {
-            $body = (string)$this->fetchYandexResponse($request->get['search']);
+            $body = (string)$this->fetchYandexResponse($request->get['search'], $headers);
             $table->set($keySearchMd5, [
                 'search' => $request->get['search'],
                 'body' => $body,
@@ -767,11 +759,12 @@ class Serp
     }
 
     /**
-     * @param $search
+     * @param string $search
+     * @param array $headers
      * @return bool|string
      * @throws Exception
      */
-    private function fetchYandexResponse($search): bool|string
+    private function fetchYandexResponse(string $search, array $headers): bool|string
     {
         $curl = curl_init();
         $curl_options = [
@@ -780,7 +773,7 @@ class Serp
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_CONNECTTIMEOUT => 5,
             CURLOPT_TIMEOUT => 5,
-            CURLOPT_HTTPHEADER => $this->headers,
+            CURLOPT_HTTPHEADER => $headers,
             CURLOPT_FOLLOWLOCATION => false,
         ];
         curl_setopt_array($curl, $curl_options);

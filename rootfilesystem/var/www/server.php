@@ -41,38 +41,31 @@ $server->on(
             return;
         }
 
-        $response->header('Content-Type', 'text/html; charset=utf-8');
-
         $path = explode('/', trim($request->server['request_uri'], '/'));
         switch ($path[0]) {
             case 'sites':
                 if (!empty($request->get['search'])) {
-                    /**
-                     * @var array|string[]
-                     */
+                    $response->header('Content-Type', 'application/json');
                     $headers = [
-                        'User-Agent: Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4467.0 Mobile Safari/537.36',
+                        'User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4467.0 Safari/537.36',
                         'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                        'accept-language: ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7,zh-TW;q=0.6,zh;q=0.5',
                     ];
-                    $response->write('Время parseYandex IN: ' . round((hrtime(true) - $start) / 1e+3) . ' микр.сек.' . PHP_EOL);
-                    $Hosts = (new Parser\Serp)->parseYandex($request, $table);
-                    $response->write('Время parseYandex OUT: ' . round((hrtime(true) - $start) / 1e+3) . ' микр.сек.' . PHP_EOL);
-//                    $response->write(var_export($Hosts, true));
 
-                    $response->write('Время checkDomainMultiple IN: ' . round((hrtime(true) - $start) / 1e+3) . ' микр.сек.' . PHP_EOL);
-                    $checkListDomain = (new Benchmark\Growth)->checkDomainMultiple($server, $Hosts, $headers);
-                    $response->write('Время checkDomainMultiple OUT: ' . round((hrtime(true) - $start) / 1e+3) . ' микр.сек.' . PHP_EOL);
+                    $hosts = (new Parser\Serp)->parseYandex($request, $table, $headers);
 
-                    $response->write(var_export($checkListDomain, true) . PHP_EOL);
+                    $checkListDomain = (new Benchmark\Growth)->checkDomainMultiple($server, $hosts, $headers);
+
+                    $response->write(json_encode($checkListDomain));
 
                     break;
                 }
             default:
+                $response->header('Content-Type', 'text/html; charset=utf-8');
                 $response->status(404);
                 break;
         }
-        $response->write('Время END: ' . round((hrtime(true) - $start) / 1e+3) . ' микр.сек.' . PHP_EOL);
-        $response->end('No Data');
+        $response->end('{"error": true}');
     }
 );
 

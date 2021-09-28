@@ -126,11 +126,11 @@ class Growth
      * @param $headers
      * @return array
      */
-    public function checkDomainMultiple(HttpServer $server, $domains, $headers): array
+    public function checkDomainMultiple(HttpServer $server, $hosts, $headers): array
     {
         $tasks = [];
-        foreach ($domains as $domain) {
-            $site = ($domain['Scheme'] ?? 'https') . '://' . $domain['Host'] . '/';
+        foreach ($hosts as $host) {
+            $site = ($domain['Scheme'] ?? 'https') . '://' . $host['Host'] . '/';
             if (!array_key_exists($site, $this->RequestThrottle)) {
                 $this->RequestThrottle[$site] = 0;
                 $tasks[] = [
