@@ -28,6 +28,7 @@
     "ext-libxml": "*",
     "ext-simplexml": "*",
     "symfony/css-selector": "^5.3",
-    "symfony/dom-crawler": "^5.3"
+    "symfony/dom-crawler": "^5.3",
+    "ext-redis": "*"
   }
 }

@@ -3,40 +3,37 @@
 
 declare(strict_types=1);
 
+use Swoole\Coroutine as Co;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoole\Http\Server;
 
 require __DIR__ . '/vendor/autoload.php';
 
-$http = new Server("0.0.0.0", intval($_ENV['HTTP_PORT'] ?? 9501));
+//Swoole\Runtime::enableCoroutine();
+Co::set(['hook_flags' => SWOOLE_HOOK_ALL | SWOOLE_HOOK_CURL]);
 
 $table = new Swoole\Table(64);
-//$table->column('id_search_md5', Swoole\Table::TYPE_STRING, 32);
 $table->column('search', Swoole\Table::TYPE_STRING, 32);
 $table->column('body', Swoole\Table::TYPE_STRING, 1000000);
 $table->create();
+//$table->destroy();
 
-$http->set(array(
-    'worker_num' => 32,
-    'task_worker_num' => 256,
+$server = new Server("0.0.0.0", intval($_ENV['HTTP_PORT'] ?? 9501));
+$server->set(array(
+    'worker_num' => 16,
+    'task_worker_num' => 64,
+    'enable_coroutine' => true,
 ));
 
-$http->on(
+$server->on(
     "request",
-    function (Request $request, Response $response) use ($http, $table) {
-        $start = microtime(true);
-//                    $response->write('Время: ' . number_format(microtime(true) - $start, 6, '.', '') . ' сек.' . PHP_EOL);
+    function (Request $request, Response $response) use ($server, $table) {
+        $start = hrtime(true);
         if ($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
             $response->end();
             return;
         }
-
-//        $http->send($fd, "分发任务，任务id为$task_id\n");
-
-//        $response->end($table->memorySize / 1024 / 1024);
-//        $table->destroy();
-//        return;
 
         $response->header('Content-Type', 'text/html; charset=utf-8');
 
@@ -51,38 +48,82 @@ $http->on(
                         'User-Agent: Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4467.0 Mobile Safari/537.36',
                         'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
                     ];
-                    $result = (new Parser\Serp)->parseYandex($request, $response, $table);
-                    $response->write('Время RAW: ' . microtime(true) - $start . ' сек.' . PHP_EOL);
-                    $response->write('Время number_format: ' . number_format(microtime(true) - $start, 6, '.', '') . ' сек.' . PHP_EOL);
+//                    $eta = (int)round((hrtime(true) - $start) / 1e+3); // Микросекунда 1 / 1 000 000 | Curl
+//                    $response->write('Время parseYandex IN: ' . $eta . ' микр.сек.' . PHP_EOL);
+                    $Hosts = (new Parser\Serp)->parseYandex($request, $response, $table);
+//                    $eta = (int)round((hrtime(true) - $start) / 1e+3); // Микросекунда 1 / 1 000 000 | Curl
+//                    $response->write('Время parseYandex OUT: ' . $eta . ' микр.сек.' . PHP_EOL);
+//                    $response->write(var_export($Hosts, true));
 
-//                    $results = $http->taskWaitMulti($tasks, 4.0);
-//                    $response->write(var_export($results, true) . PHP_EOL);
-//                    $checkListDomain = (new Benchmark\Growth)->checkListDomains($http, $result);
-                    $start = microtime(true);
-                    $checkListDomain = Benchmark\Growth::checkDomain('https://api-dev.skladskoi.com/', $headers);
-                    $response->write('Время checkDomain: ' . round(microtime(true) - $start, 6) . ' сек.' . PHP_EOL);
-                    $response->write('Время RAW: ' . microtime(true) - $start . ' сек.' . PHP_EOL);
 
-                    $response->write(var_export($checkListDomain, true) . PHP_EOL);
-                    $response->write(var_export($checkListDomain['total_time_us'] <= 3000000, true) . PHP_EOL);
-                    $response->write('Время: ' . microtime(true) - $start . ' сек.' . PHP_EOL);
+//                    $eta = round(hrtime(true) - $start) / 1e+0; // Наносекунда 1 / 1 000 000 000
+//                    $eta = round(hrtime(true) - $start) / 1e+3; // Микросекунда 1 / 1 000 000 | Curl
+//                    $eta = round(hrtime(true) - $start) / 1e+6; // Миллисекунда 1 / 1 000
+//                    $eta = round(hrtime(true) - $start) / 1e+9; // Наносекунда 1 / 1
+//                    $response->write('Время: ' . $eta . PHP_EOL);
+
+//                    $checkListDomain = (new Benchmark\Growth)->checkSite($server, 'https://api-dev.skladskoi.com/api/rack/rack', $headers, $response);
+//                    $checkListDomain = (new Benchmark\Growth)->checkSite($server, 'https://api-dev.skladskoi.com/', $headers, $response);
+                    $checkListDomain = (new Benchmark\Growth)->checkDomainMultiple($server, $Hosts, $headers);
+
+                    $response->write(print_r($checkListDomain, true) . PHP_EOL);
+
                     break;
                 }
             default:
                 $response->status(404);
                 break;
         }
-        $response->end('<h1>No Data</h1>');
+        $response->end('No Data');
     }
 );
 
-$http->on('Task', function (Swoole\Server $server, $task_id, $reactor_id, $data) {
-    echo "Tasker получает данные" . PHP_EOL;
-    sleep(3);
-    echo "#{$server->worker_id}\tonTask: [PID={$server->worker_pid}]: task_id=$task_id, data_len=" . print_r($data, true) . "." . PHP_EOL;
-    $server->finish(1);
+$server->on('Task', function (Swoole\Server $server, $task_id, $reactor_id, $json_rpc) {
+    // "jsonrpc": "2.0",
+    // {"method": String, "params": {"site": String, "headers": Array}, "id": String}
+    $result = [
+        'result' => null,
+        'id' => $json_rpc['id'],
+    ];
+    switch ($json_rpc['method']) {
+        case 'getSiteInfo':
+            $siteInfo = Benchmark\Growth::getSiteInfo($json_rpc['params']['site'], $json_rpc['params']['headers']);
+            $result['result'] = $siteInfo;
+            break;
+        case 'checkDomain':
+            $checkDomain = Benchmark\Growth::checkDomain($server, $json_rpc['params']['site'], $json_rpc['params']['headers']);
+            $result['result'] = $checkDomain;
+            break;
+    }
+    // "jsonrpc": "2.0",
+    // {"result": Mixed, "id": String}
+    $server->finish($result);
 });
 
-$http->start();
+$server->start();
+
+
+$serv = new Swoole\Server("127.0.0.1", 9510); // , SWOOLE_PROCESS, SWOOLE_SOCK_UDP
+
+$serv->on('Connect', function ($serv, $fd) {
+    $redis = new Redis();
+    $redis->connect("127.0.0.1", 6379);
+    Co::sleep(5);
+    $redis->set($fd, "fd $fd connected");
+});
+
+$serv->on('Receive', function ($serv, $fd, $reactor_id, $data) {
+    $redis = new Redis();
+    $redis->connect("127.0.0.1", 6379);
+    var_dump($redis->get($fd));
+});
+
+$serv->on('Close', function ($serv, $fd) {
+    echo "Client: Close.\n";
+});
+
+$serv->start();
+
+
 
 

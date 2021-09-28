@@ -21,20 +21,26 @@ $server->set([
 //    'user'=>'www',
 //    'group'=>'www',
     'worker_num' => 2, // Количество запускаемых рабочих процессов
-    'task_worker_num' => 16,  // Количество рабочих задач для запуска
-    'backlog' => 512,       // TCP backlog connection number
+    'task_worker_num' => 8,  // Количество рабочих задач для запуска
+//    'backlog' => 512,       // TCP backlog connection number
 ]);
-
-
-$server->on('Task', function (swoole_server $serv, $task_id, $worker_id, $data) {
-    echo "#{$serv->worker_id}\tonTask: worker_id={$worker_id}, task_id=$task_id" . PHP_EOL;
-    sleep(1);
-    return microtime();
-});
+//$server->on('Task', function (swoole_server $serv, $task_id, $worker_id, $data) {
+//    echo "#{$serv->worker_id}\tonTask: worker_id={$worker_id}, task_id=$task_id" . PHP_EOL;
+//    sleep(1);
+//    return hrtime(true);
+//});
 
 $server->on(
     "request",
     function (Request $request, Response $response) use ($server) {
+        $tasks = [];
+        $tasks[0] = "hello world";
+        $tasks[1] = ['data' => 1234, 'code' => 200];
+        $tasks[2] = "hello world";
+        $tasks[3] = ['data' => 1234, 'code' => 200];
+        $result = $server->taskCo($tasks, 1.5);
+        dump($result, true);
+        $response->end('Test End, Result: ' . print_r($result, true));
 
 //        $response->end();
 
@@ -72,6 +78,15 @@ $server->on(
 //        $response->end("<h1>TEST: </h1>" . $baseYandexURL ."\n".PHP_EOL;);
     }
 );
+
+$server->on('Task', function (Swoole\Server $serv, $task_id, $worker_id, $data) {
+    echo "#{$serv->worker_id}\tonTask: worker_id={$worker_id}, task_id=$task_id\n";
+    if ($serv->worker_id == '23') {
+        sleep(2);
+    }
+    return $data;
+});
+
 
 $server->start();
 
