@@ -2,12 +2,15 @@
 
 namespace Benchmark;
 
-use Swoole\Http\Server;
-use Swoole\Coroutine as Co;
+use Swoole\Server;
+use Swoole\Http\Server as HttpServer;
 
 class Growth
 {
 
+    /**
+     * @var array|bool[]
+     */
     private array $httpCode2xx = [
         "200" => true,
         "201" => true,
@@ -33,7 +36,6 @@ class Growth
      */
     public static function getSiteInfo($site, $headers): array
     {
-//        dump($site);
         $return = [
             'total_time_us' => 0,
             'http_code' => 500,
@@ -51,7 +53,6 @@ class Growth
         ];
         curl_setopt_array($curl, $curl_options);
 
-//        if (curl_errno($curl)) {
         if (curl_exec($curl) === false) {
 //            dump(curl_error($curl));
             curl_close($curl);
@@ -59,7 +60,6 @@ class Growth
         }
 
         $curl_info = curl_getinfo($curl);
-//        dump($curl_info);
 
         curl_close($curl);
 
@@ -68,34 +68,21 @@ class Growth
             return $return;
         }
 
-//        return $curl_info;
         $return['total_time_us'] = (int)$curl_info['total_time_us'];
         return $return;
     }
 
-    public function checkDomainMultiple(Server $server, $domains, $headers)
+    /**
+     * @param HttpServer $server
+     * @param $domains
+     * @param $headers
+     * @return array
+     */
+    public function checkDomainMultiple(HttpServer $server, $domains, $headers): array
     {
-        Co::set(['hook_flags' => SWOOLE_HOOK_ALL]);
-//        Swoole\Runtime::enableCoroutine();
-        $domains = [
-            'https://api-dev.skladskoi.com/?test=',
-            'https://api-dev.skladskoi.com/api/rack/rack?test=',
-            'https://api-dev.skladskoi.com/?test=',
-            'https://api-dev.skladskoi.com/api/rack/rack?test=',
-            'https://api-dev.skladskoi.com/?test=',
-            'https://api-dev.skladskoi.com/api/rack/rack?test=',
-            'https://api-dev.skladskoi.com/?test=',
-            'https://api-dev.skladskoi.com/api/rack/rack?test=',
-        ];
         $tasks = [];
-        $i = 0;
         foreach ($domains as $domain) {
-            ++$i;
-//            if ($i > 5) break;
-//            dump($domain);
-//            $site = ($domain['Scheme'] ?? 'https') . '://' . $domain['Host'] . '/';
-//            $site = 'https://api-dev.skladskoi.com/?' . $i;
-            $site = $domain . $i;
+            $site = ($domain['Scheme'] ?? 'https') . '://' . $domain['Host'] . '/';
             if (!array_key_exists($site, $this->RequestThrottle)) {
                 $this->RequestThrottle[$site] = 0;
                 $tasks[] = [
@@ -108,26 +95,25 @@ class Growth
                 ];
             }
         }
-        foreach (array_chunk($tasks, 5, true) as $task) {
-            dump($task);
-            foreach ($task as $site => $result) {
-//            $results = $server->taskWaitMulti($task, 10);
-//            dump($results);
-//            $results = $server->taskWaitMulti($task, 10);
-//                dump($site);
-//                dump($result);
+        $results = $server->taskCo($tasks, 27);
+        foreach ($results as $result) {
+            if ($result) {
+                $this->RequestThrottle[$result['id']] = $result['result'];
             }
-//            dump($results);
         }
         return $this->RequestThrottle;
     }
 
-    public static function checkDomain(Server $server, $site, $headers)
+    /**
+     * @param Server $server
+     * @param $site
+     * @param $headers
+     * @return int
+     */
+    public static function checkDomain(Server $server, $site, $headers): int
     {
         $tasks = [];
         $count = 0;
-//        if (!array_key_exists($site, $this->RequestThrottle)) {
-//            $this->RequestThrottle[$site] = 0;
         $i = 0;
         do {
             // {"method": String, "params": {"site": String, "headers": Array}, "id": String}
@@ -139,26 +125,20 @@ class Growth
                 ],
                 'id' => $site,
             ];
-//                $results = $server->taskWaitMulti($tasks, 4.0);
-            dump($tasks);
             $results = $server->taskCo($tasks, 3.5);
-            dump($results);
             if ($next = Growth::checkResponses($results)) {
                 $count = count($results);
-//                    $this->RequestThrottle[$site] = [count($results), $results];
-            } else {
-                dump($tasks);
             }
-        } while ($next && ++$i <= 10);
+        } while ($next && ++$i <= 20);
         return $count;
-//        }
     }
 
-    public static function checkResponses($resultTasks)
+    /**
+     * @param $resultTasks
+     * @return bool
+     */
+    public static function checkResponses($resultTasks): bool
     {
-        dump($resultTasks);
-        // "jsonrpc": "2.0",
-        // {"result": Mixed, "id": String}
         $count = count($resultTasks);
         foreach ($resultTasks as $resultTask) {
             if (
