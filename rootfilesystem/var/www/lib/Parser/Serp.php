@@ -4,7 +4,6 @@ namespace Parser;
 
 use Exception;
 use Swoole\Http\Request;
-use Swoole\Http\Response;
 use Swoole\Table;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -768,6 +767,34 @@ class Serp
     }
 
     /**
+     * @param $search
+     * @return bool|string
+     * @throws Exception
+     */
+    private function fetchYandexResponse($search): bool|string
+    {
+        $curl = curl_init();
+        $curl_options = [
+            CURLOPT_URL => $this->baseYandexURL . urlencode($search),
+            CURLOPT_HEADER => false,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_TIMEOUT => 5,
+            CURLOPT_HTTPHEADER => $this->headers,
+            CURLOPT_FOLLOWLOCATION => false,
+        ];
+        curl_setopt_array($curl, $curl_options);
+
+        if (false === ($result = curl_exec($curl))) {
+//            dump(curl_error($curl));
+            throw new Exception('Http request failed');
+        }
+
+        curl_close($curl);
+        return $result;
+    }
+
+    /**
      * @param $body
      * @return int
      */
@@ -805,9 +832,7 @@ class Serp
 
                 $parseUrl = parse_url($uri);
 
-                print_r($parseUrl);
-
-                if (empty($parseUrl['host']) || !empty($this->blackList[$parseUrl['host']])) {
+                if (empty($parseUrl['host']) || !empty($this->blackList[strtolower($parseUrl['host'])])) {
                     continue;
                 }
 
@@ -822,34 +847,6 @@ class Serp
             }
         }
         return $i;
-    }
-
-    /**
-     * @param $search
-     * @return bool|string
-     * @throws Exception
-     */
-    private function fetchYandexResponse($search): bool|string
-    {
-        $curl = curl_init();
-        $curl_options = [
-            CURLOPT_URL => $this->baseYandexURL . urlencode($search),
-            CURLOPT_HEADER => false,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_CONNECTTIMEOUT => 5,
-            CURLOPT_TIMEOUT => 5,
-            CURLOPT_HTTPHEADER => $this->headers,
-            CURLOPT_FOLLOWLOCATION => false,
-        ];
-        curl_setopt_array($curl, $curl_options);
-
-        if (false === ($result = curl_exec($curl))) {
-//            dump(curl_error($curl));
-            throw new Exception('Http request failed');
-        }
-
-        curl_close($curl);
-        return $result;
     }
 
     /**

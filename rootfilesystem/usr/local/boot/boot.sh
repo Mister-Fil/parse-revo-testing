@@ -2,4 +2,4 @@
 
 set -e
 
-enable-supervisord-program.sh swoole2
+enable-supervisord-program.sh checker

@@ -2,8 +2,8 @@
 
 namespace Benchmark;
 
-use Swoole\Server;
 use Swoole\Http\Server as HttpServer;
+use Swoole\Server;
 
 class Growth
 {
@@ -73,38 +73,6 @@ class Growth
     }
 
     /**
-     * @param HttpServer $server
-     * @param $domains
-     * @param $headers
-     * @return array
-     */
-    public function checkDomainMultiple(HttpServer $server, $domains, $headers): array
-    {
-        $tasks = [];
-        foreach ($domains as $domain) {
-            $site = ($domain['Scheme'] ?? 'https') . '://' . $domain['Host'] . '/';
-            if (!array_key_exists($site, $this->RequestThrottle)) {
-                $this->RequestThrottle[$site] = 0;
-                $tasks[] = [
-                    'method' => 'checkDomain',
-                    'params' => [
-                        'site' => $site,
-                        'headers' => $headers,
-                    ],
-                    'id' => $site,
-                ];
-            }
-        }
-        $results = $server->taskCo($tasks, 27);
-        foreach ($results as $result) {
-            if ($result) {
-                $this->RequestThrottle[$result['id']] = $result['result'];
-            }
-        }
-        return $this->RequestThrottle;
-    }
-
-    /**
      * @param Server $server
      * @param $site
      * @param $headers
@@ -150,5 +118,37 @@ class Growth
             }
         }
         return $count > 0;
+    }
+
+    /**
+     * @param HttpServer $server
+     * @param $domains
+     * @param $headers
+     * @return array
+     */
+    public function checkDomainMultiple(HttpServer $server, $domains, $headers): array
+    {
+        $tasks = [];
+        foreach ($domains as $domain) {
+            $site = ($domain['Scheme'] ?? 'https') . '://' . $domain['Host'] . '/';
+            if (!array_key_exists($site, $this->RequestThrottle)) {
+                $this->RequestThrottle[$site] = 0;
+                $tasks[] = [
+                    'method' => 'checkDomain',
+                    'params' => [
+                        'site' => $site,
+                        'headers' => $headers,
+                    ],
+                    'id' => $site,
+                ];
+            }
+        }
+        $results = $server->taskCo($tasks, 27);
+        foreach ($results as $result) {
+            if ($result) {
+                $this->RequestThrottle[$result['id']] = $result['result'];
+            }
+        }
+        return $this->RequestThrottle;
     }
 }
