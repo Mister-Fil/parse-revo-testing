@@ -788,10 +788,10 @@ class Serp
     }
 
     /**
-     * @param $body
+     * @param string $body
      * @return int
      */
-    private function parseYandexResponse($body): int
+    private function parseYandexResponse(string $body): int
     {
         $serpItems = (new Crawler($body))->filter('div.serp-item')->each(fn(Crawler $node, $i) => new Crawler($node->outerHtml()));
 
@@ -843,10 +843,10 @@ class Serp
     }
 
     /**
-     * @param $domain
+     * @param string $domain
      * @return string
      */
-    private function getRootDomain($domain): string
+    private function getRootDomain(string $domain): string
     {
         $domain = strtolower($domain);
         $parts = explode('.', $domain);

@@ -11,7 +11,7 @@ class Growth
     /**
      * @var array|bool[]
      */
-    private array $httpCode2xx = [
+    private static array $httpCode2xx = [
         "200" => true,
         "201" => true,
         "202" => true,
@@ -25,16 +25,11 @@ class Growth
     ];
 
     /**
-     * @var array|int[]
-     */
-    private array $RequestThrottle = [];
-
-    /**
-     * @param $site
-     * @param $headers
+     * @param string $site
+     * @param array $headers
      * @return array
      */
-    public static function getSiteInfo($site, $headers): array
+    public static function getSiteInfo(string $site, array $headers): array
     {
         $return = [
             'total_time_us' => 0,
@@ -74,11 +69,11 @@ class Growth
 
     /**
      * @param Server $server
-     * @param $site
-     * @param $headers
+     * @param string $site
+     * @param array $headers
      * @return int
      */
-    public static function checkDomain(Server $server, $site, $headers): int
+    public static function checkDomain(Server $server, string $site, array $headers): int
     {
         $tasks = [];
         $count = 0;
@@ -102,10 +97,10 @@ class Growth
     }
 
     /**
-     * @param $resultTasks
+     * @param array $resultTasks
      * @return bool
      */
-    public static function checkResponses($resultTasks): bool
+    private static function checkResponses(array $resultTasks): bool
     {
         $count = count($resultTasks);
         foreach ($resultTasks as $resultTask) {
@@ -122,17 +117,18 @@ class Growth
 
     /**
      * @param HttpServer $server
-     * @param $domains
-     * @param $headers
+     * @param array $hosts
+     * @param array $headers
      * @return array
      */
-    public function checkDomainMultiple(HttpServer $server, $hosts, $headers): array
+    public static function checkDomainMultiple(HttpServer $server, array $hosts, array $headers): array
     {
         $tasks = [];
+        $RequestThrottle = [];
         foreach ($hosts as $host) {
             $site = ($domain['Scheme'] ?? 'https') . '://' . $host['Host'] . '/';
-            if (!array_key_exists($site, $this->RequestThrottle)) {
-                $this->RequestThrottle[$site] = 0;
+            if (!array_key_exists($site, $RequestThrottle)) {
+                $RequestThrottle[$site] = 0;
                 $tasks[] = [
                     'method' => 'checkDomain',
                     'params' => [
@@ -146,9 +142,9 @@ class Growth
         $results = $server->taskCo($tasks, 27);
         foreach ($results as $result) {
             if ($result) {
-                $this->RequestThrottle[$result['id']] = $result['result'];
+                $RequestThrottle[$result['id']] = $result['result'];
             }
         }
-        return $this->RequestThrottle;
+        return $RequestThrottle;
     }
 }

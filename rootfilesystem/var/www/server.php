@@ -54,7 +54,7 @@ $server->on(
 
                     $hosts = (new Parser\Serp)->parseYandex($request, $table, $headers);
 
-                    $checkListDomain = (new Benchmark\Growth)->checkDomainMultiple($server, $hosts, $headers);
+                    $checkListDomain = Benchmark\Growth::checkDomainMultiple($server, $hosts, $headers);
 
                     $response->write(json_encode($checkListDomain));
 
